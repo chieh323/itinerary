@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -81,12 +80,11 @@
             { id: 'p3', text: '我要點這個，謝謝。 (I would like to order this, thank you.)' }
         ];
 
-        // --- 核心優化：資料轉移相容函式 ---
         const migrateTripData = (data) => {
             const migrateSpot = (spot) => {
                 if (spot.type === 'spot' && !spot.transportPlans) {
                     const existingSteps = spot.transportToNext || [];
-                    const planId = `tp_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
+                    const planId = "tp_" + Date.now() + "_" + Math.random().toString(36).substr(2,9);
                     spot.transportPlans = [{ id: planId, name: '方案 1', steps: existingSteps }];
                     spot.activeTransportPlanId = planId;
                     delete spot.transportToNext;
@@ -107,7 +105,7 @@
             const [activeTab, setActiveTab] = useState('itinerary'); 
             const [isEditMode, setIsEditMode] = useState(false);
             
-            // --- 💡 多行程管理狀態 (Trips State) ---
+            // --- 多行程管理狀態 ---
             const [trips, setTrips] = useState(() => {
                 const savedTrips = localStorage.getItem('tripsData');
                 if (savedTrips) {
@@ -115,7 +113,6 @@
                     parsed.forEach(t => { t.itinerary = migrateTripData(t.itinerary); });
                     return parsed;
                 } else {
-                    // 相容舊版資料：將舊版的單一行程包裹成第一個 Trip
                     const savedItinerary = localStorage.getItem('itineraryData');
                     const savedFiles = localStorage.getItem('filesData');
                     
@@ -124,7 +121,7 @@
                     legacyItinerary = migrateTripData(legacyItinerary);
                     
                     return [{
-                        id: `trip_default`,
+                        id: "trip_default",
                         name: '我的預設行程',
                         itinerary: legacyItinerary,
                         files: legacyFiles
@@ -134,12 +131,11 @@
 
             const [activeTripId, setActiveTripId] = useState(() => {
                 const saved = localStorage.getItem('activeTripId');
-                return saved || trips[0]?.id;
+                return saved || (trips[0] ? trips[0].id : "");
             });
 
             const [currentDateIndex, setCurrentDateIndex] = useState(0);
             
-            // 全域溝通幫手狀態
             const [phrases, setPhrases] = useState(() => {
                 const saved = localStorage.getItem('phrasesData');
                 return saved ? JSON.parse(saved) : defaultPhrases;
@@ -151,22 +147,18 @@
             const fileInputRef = useRef(null);
             const [modalConfig, setModalConfig] = useState({ isOpen: false, type: 'alert', title: '', message: '', inputValue: '', onConfirm: null });
 
-            // 確切綁定當前活躍的行程資料
             const activeTrip = trips.find(t => t.id === activeTripId) || trips[0];
             const itinerary = activeTrip.itinerary;
             const files = activeTrip.files || [];
 
-            // 防呆：確保 activeTripId 一定存在於 trips 中
             useEffect(() => {
                 if (!trips.find(t => t.id === activeTripId)) {
-                    setActiveTripId(trips[0]?.id);
+                    setActiveTripId(trips[0] ? trips[0].id : "");
                 }
             }, [trips, activeTripId]);
 
-            // 切換行程時，自動歸零日期索引
             useEffect(() => { setCurrentDateIndex(0); }, [activeTripId]);
 
-            // 儲存狀態至 LocalStorage
             useEffect(() => { localStorage.setItem('tripsData', JSON.stringify(trips)); }, [trips]);
             useEffect(() => { localStorage.setItem('activeTripId', activeTripId); }, [activeTripId]);
             useEffect(() => { localStorage.setItem('phrasesData', JSON.stringify(phrases)); }, [phrases]);
@@ -175,16 +167,15 @@
             const activeDay = itinerary[currentDateIndex] || { date: '', spots: [] };
 
             const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
-            const showAlert = (title, message) => setModalConfig({ isOpen: true, type: 'alert', title, message, inputValue: '', onConfirm: closeModal });
-            const showConfirm = (title, message, onConfirmAction) => setModalConfig({ isOpen: true, type: 'confirm', title, message, inputValue: '', onConfirm: () => { onConfirmAction(); closeModal(); } });
-            const showPrompt = (title, message, defaultValue, onConfirmAction) => setModalConfig({ isOpen: true, type: 'prompt', title, message, inputValue: defaultValue, onConfirm: (val) => { onConfirmAction(val); closeModal(); } });
+            const showAlert = (title, message) => setModalConfig({ isOpen: true, type: 'alert', title: title, message: message, inputValue: '', onConfirm: closeModal });
+            const showConfirm = (title, message, onConfirmAction) => setModalConfig({ isOpen: true, type: 'confirm', title: title, message: message, inputValue: '', onConfirm: () => { onConfirmAction(); closeModal(); } });
+            const showPrompt = (title, message, defaultValue, onConfirmAction) => setModalConfig({ isOpen: true, type: 'prompt', title: title, message: message, inputValue: defaultValue, onConfirm: (val) => { onConfirmAction(val); closeModal(); } });
 
-            // --- 💡 多行程 (Trip) CRUD 動作 ---
             const handleAddTrip = () => {
                 showPrompt('新增行程', '請為新行程命名 (例如：3月關西賞櫻)：', '新行程', (val) => {
                     if (val) {
                         const newTrip = {
-                            id: `trip_${Date.now()}`,
+                            id: "trip_" + Date.now(),
                             name: val,
                             itinerary: [{ date: new Date().toLocaleDateString('en-CA'), spots: [] }],
                             files: []
@@ -206,12 +197,11 @@
                     showAlert('無法刪除', '這是您最後一個行程，無法刪除！您可以選擇重新命名或先新增另一個行程。');
                     return;
                 }
-                showConfirm('刪除行程', `確定要刪除「${activeTrip.name}」嗎？這個行程的所有景點與檔案都會消失且無法復原喔！`, () => {
+                showConfirm('刪除行程', "確定要刪除「" + activeTrip.name + "」嗎？這個行程的所有景點與檔案都會消失且無法復原喔！", () => {
                     setTrips(prev => prev.filter(t => t.id !== activeTripId));
                 });
             };
 
-            // --- 💡 封裝當前行程資料更新機制 ---
             const mutateItinerary = (recipe) => {
                 setTrips(prev => {
                     const draft = JSON.parse(JSON.stringify(prev));
@@ -248,7 +238,11 @@
                         let steps = [];
                         spots.forEach(s => {
                             if (s.type === 'spot') {
-                                const tp = s.transportPlans?.find(p => p.id === s.activeTransportPlanId);
+                                // 移除 ?. 改用 &&
+                                let tp = null;
+                                if (s.transportPlans) {
+                                    tp = s.transportPlans.find(p => p.id === s.activeTransportPlanId);
+                                }
                                 if (tp) tp.steps.forEach(st => { if (st.type === 'transit' && st.arrivalTime) steps.push({ spotName: s.name, ...st }); });
                             } else if (s.type === 'branch') {
                                 const plan = s.plans.find(p => p.id === s.activePlanId);
@@ -263,24 +257,26 @@
                     stepsToday.forEach(step => {
                         if (!step.arrivalTime) return;
                         
-                        let [h, m] = step.arrivalTime.split(':').map(Number);
+                        let parts = step.arrivalTime.split(':');
+                        let h = Number(parts[0]);
+                        let m = Number(parts[1]);
                         m -= 5;
                         if (m < 0) { m += 60; h -= 1; }
                         if (h < 0) h += 24;
-                        const preHHMM = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                        const preHHMM = String(h).padStart(2,'0') + ":" + String(m).padStart(2,'0');
 
-                        const alertKey5m = `alert-5m-${step.id}-${todayStr}`;
-                        const alertKey0m = `alert-0m-${step.id}-${todayStr}`;
+                        const alertKey5m = "alert-5m-" + step.id + "-" + todayStr;
+                        const alertKey0m = "alert-0m-" + step.id + "-" + todayStr;
 
                         if (currentHHMM === preHHMM && !localStorage.getItem(alertKey5m)) {
-                            const msg = `您搭乘的 [${step.info || '車次'}] 預計再 5 分鐘後抵達 ${step.arrivalStation || '目的地'}，請準備下車！`;
+                            const msg = "您搭乘的 [" + (step.info || "車次") + "] 預計再 5 分鐘後抵達 " + (step.arrivalStation || "目的地") + "，請準備下車！";
                             setModalConfig({ isOpen: true, type: 'alert', title: '🔔 即將到站提醒', message: msg, inputValue: '', onConfirm: () => setModalConfig(p=>({...p, isOpen:false})) });
                             if ('Notification' in window && Notification.permission === 'granted') new Notification('即將到站提醒', { body: msg });
                             localStorage.setItem(alertKey5m, 'true');
                         }
                         
                         if (currentHHMM === step.arrivalTime && !localStorage.getItem(alertKey0m)) {
-                            const msg = `您搭乘的 [${step.info || '車次'}] 應該已經抵達 ${step.arrivalStation || '目的地'} 囉！`;
+                            const msg = "您搭乘的 [" + (step.info || "車次") + "] 應該已經抵達 " + (step.arrivalStation || "目的地") + " 囉！";
                             setModalConfig({ isOpen: true, type: 'alert', title: '📍 到站提醒', message: msg, inputValue: '', onConfirm: () => setModalConfig(p=>({...p, isOpen:false})) });
                             if ('Notification' in window && Notification.permission === 'granted') new Notification('到站提醒', { body: msg });
                             localStorage.setItem(alertKey0m, 'true');
@@ -291,7 +287,6 @@
                 return () => clearInterval(timer);
             }, []);
 
-            // --- 每日花費自動解析計算 ---
             const extractNumber = (str) => {
                 if (!str) return 0;
                 const match = String(str).match(/[\d,]+/g);
@@ -303,7 +298,10 @@
                 spots.forEach(spot => {
                     if (spot.type === 'spot') {
                         total += extractNumber(spot.cost);
-                        const tp = spot.transportPlans?.find(p => p.id === spot.activeTransportPlanId);
+                        let tp = null;
+                        if (spot.transportPlans) {
+                            tp = spot.transportPlans.find(p => p.id === spot.activeTransportPlanId);
+                        }
                         if (tp) tp.steps.forEach(step => total += extractNumber(step.cost));
                     } else if (spot.type === 'branch') {
                         const plan = spot.plans.find(p => p.id === spot.activePlanId);
@@ -313,23 +311,25 @@
                 return total;
             };
 
-            // --- 一鍵分享 (複製文字) 功能 ---
             const handleCopyShare = () => {
                 if (!activeDay || activeDay.spots.length === 0) {
                     showAlert('提示', '今日尚無行程可以分享！');
                     return;
                 }
 
-                let textToShare = `📅 ${activeDay.date} ${activeTrip.name}\n\n`;
+                let textToShare = "📅 " + activeDay.date + " " + activeTrip.name + "\n\n";
 
                 const formatSpotToText = (spot) => {
                     if (spot.name && spot.name.trim() !== '') {
-                        const timeStr = (spot.arrivalTime && spot.departureTime) ? `[${spot.arrivalTime}~${spot.departureTime}] ` : (spot.arrivalTime ? `[${spot.arrivalTime}] ` : '');
-                        textToShare += `📍 ${timeStr}${spot.name}\n`;
+                        let timeStr = "";
+                        if (spot.arrivalTime) {
+                            if (spot.departureTime) {
+                                timeStr = "[" + spot.arrivalTime + "~" + spot.departureTime + "] ";
+                            } else {
+                                timeStr = "[" + spot.arrivalTime + "] ";
+                            }
+                        }
+                        textToShare += "📍 " + timeStr + spot.name + "\n";
                     }
                     
-                    const activeTp = spot.transportPlans?.find(p => p.id === spot.activeTransportPlanId) || spot.transportPlans?.[0];
-                    if (activeTp && activeTp.steps) {
-                        activeTp.steps.forEach(t => {
-                            if (t.type === 'transit') {
-                                const tTime = t.departureTime ? `${
+                    let activeTp = n
